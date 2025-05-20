@@ -37,12 +37,12 @@
     - Customer: View orders, manage profile & update password
 - Order placement with SurjoPay integration
 
-## 🛒 🔄 Extras
+##  🔄 Extras
 - Track order status (progress bar)
 - Admin control to update delivery status and estimated date
 - Pagination on product and order listings
 
-## 🛒 🧰 Tech Stack
+##  🧰 Tech Stack
 - React.js
 - TypeScript
 - JWT
