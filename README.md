@@ -44,6 +44,7 @@
 
 ##  🧰 Tech Stack
 - React.js
+- Redux
 - TypeScript
 - JWT
 - Tailwind CSS
