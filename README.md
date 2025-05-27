@@ -12,15 +12,15 @@
 
 ## 📌 Table of Contents
 
- - [Features](https://awesomeopensource.com/project/elangosundar/awesome-README-templates)
- - [Tech Stack](https://github.com/matiassingers/awesome-readme)
- - [Installation](https://bulldogjob.com/news/449-how-to-write-a-good-readme-for-your-github-project)
- - [Usage](https://awesomeopensource.com/project/elangosundar/awesome-README-templates)
- - [Project Structure](https://github.com/matiassingers/awesome-readme)
- - [Environment Variables](https://bulldogjob.com/news/449-how-to-write-a-good-readme-for-your-github-project)
- - [Screenshots](https://awesomeopensource.com/project/elangosundar/awesome-README-templates)
- - [Troubleshooting](https://github.com/matiassingers/awesome-readme)
-
+- [✨ Features](#-features)
+- [🧰 Tech Stack](#-tech-stack)
+- [🛠️ Installation](#installation)
+- [🚀 Usage](#-usage)
+- [⚙️ Environment Variables](#️-environment-variables)
+- [📁 Project Structure](#-project-structure)
+- [🖼️ Screenshots](#️-screenshots)
+- [🧩 Troubleshooting](#-troubleshooting)
+- [🔗 Live Link](#-live-link)
 
 
 # ✨ Features
@@ -55,8 +55,8 @@
  1. Clone the repo:
 
 ```bash
-git clone https://github.com/your-username/bike-shop-client.git
-cd bike-shop-client
+git clone https://github.com/ZakiaSultana4/Bi-Cycle-Store-Frontend
+cd Bi-Cycle-Store-Frontend
 
 ```
 2. Install dependencies:
