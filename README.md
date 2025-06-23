@@ -122,6 +122,19 @@ src/
 
 ![Bi Cycle Store Banner](https://jehrfbtl7l.ufs.sh/f/soyLwyt7O15DBeZpnA9oMe6yNsJtRdclHvzjI7QXqExnLbGw)
 
+### 🔐 Demo Credentials
+
+You can use the following demo accounts to log in to the dashboard:
+
+#### 👤 User Account
+- **Email:** `sultanazakia71@gmail.com`  
+- **Password:** `sultanazakia71`
+
+#### 👨‍💼 Admin Account
+- **Email:** `sultanazakia712@gmail.com`  
+- **Password:** `sultanazakia71`
+
+> ⚠️ These credentials are for testing/demo purposes only. Do **not** use them in a production environment.
 
 # 🧩 Troubleshooting
 - Login not working?
