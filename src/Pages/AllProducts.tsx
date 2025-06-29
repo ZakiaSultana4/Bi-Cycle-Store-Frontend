@@ -1,11 +1,15 @@
-import { useState, useMemo } from "react";
-import { FieldValues } from "react-hook-form";
-import { useAllProductsQuery } from "@/redux/features/products/productApi";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import Container from "@/components/Container";
 import SectionTitle from "@/components/SectionTitle";
 import Products from "@/components/Products";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import Pagination from "@/components/Pagination";
+import { useAllProductsQuery } from "@/redux/features/products/productApi";
+
+
+
+
 
 export default function AllProducts() {
   const { darkMode } = useDarkMode();
@@ -16,13 +20,18 @@ export default function AllProducts() {
     inStock: "",
     minPrice: "",
     maxPrice: "",
+    riderType: "", // Rider Type filter
   });
 
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 9;
 
-  const handleFilterChange = (e: FieldValues) => {
+  // ✅ Fixed handler type
+  const handleFilterChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
+    console.log("Changed:", name, value); // Debug log
     setFilters((prev) => ({ ...prev, [name]: value }));
     setCurrentPage(1);
   };
@@ -38,6 +47,7 @@ export default function AllProducts() {
       params.inStock = filters.inStock === "In Stock" ? "true" : "false";
     if (filters.minPrice) params.minPrice = filters.minPrice;
     if (filters.maxPrice) params.maxPrice = filters.maxPrice;
+    if (filters.riderType) params.riderType = filters.riderType;
     return params;
   }, [filters, currentPage]);
 
@@ -50,20 +60,27 @@ export default function AllProducts() {
     }
   };
 
-  const defaultFilters = {
-    searchTerm: "",
-    category: "",
-    inStock: "",
-    minPrice: "",
-    maxPrice: "",
-  };
-
   const handleResetFilters = () => {
-    setFilters(defaultFilters);
+    setFilters({
+      searchTerm: "",
+      category: "",
+      inStock: "",
+      minPrice: "",
+      maxPrice: "",
+      riderType: "",
+    });
     setCurrentPage(1);
   };
+const [searchParams] = useSearchParams();
 
-  // Classes
+useEffect(() => {
+  const riderTypeParam = searchParams.get("riderType");
+  if (riderTypeParam) {
+    setFilters((prev) => ({ ...prev, riderType: riderTypeParam }));
+    setCurrentPage(1);
+  }
+}, [searchParams]);
+
   const inputClasses = `p-3 border rounded-md flex-1 transition-colors duration-300 placeholder:text-sm placeholder:font-light ${
     darkMode
       ? "bg-gray-800 text-white border-gray-600 placeholder-gray-400 focus:border-teal-400"
@@ -133,6 +150,18 @@ export default function AllProducts() {
           <option value="Out of Stock">Out of Stock</option>
         </select>
 
+        <select
+          name="riderType"
+          className={selectClasses}
+          value={filters.riderType}
+          onChange={handleFilterChange}
+        >
+          <option value="">All Rider Types</option>
+          <option value="Men">Men</option>
+          <option value="Women">Women</option>
+          <option value="Kids">Kids</option>
+        </select>
+
         <div className="flex gap-2 items-center">
           <input
             type="number"
@@ -165,21 +194,27 @@ export default function AllProducts() {
       </div>
 
       {/* Products List */}
-      <Products
-        data={{ data: data?.data ?? [] }}
-        loading={isLoading}
-        limit={limit}
-      />
-
-      {/* Pagination */}
- <Pagination
-  currentPage={currentPage}
-  totalPages={totalPages}
-  onPageChange={handlePageChange}
-  maxPageButtons={7}
-  darkMode={darkMode} // pass your darkMode state here
+  <Products
+  data={{
+    data: (data?.data ?? []).map((item) => ({
+      ...item,
+      image: Array.isArray(item.image) ? item.image : [item.image],
+      inStock: item.inStock, // ✅ Ensure `inStock` is included
+    })),
+  }}
+  loading={isLoading}
+  limit={limit}
 />
 
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+        maxPageButtons={7}
+        darkMode={darkMode}
+      />
     </Container>
   );
 }

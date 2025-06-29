@@ -27,12 +27,18 @@ const FeatureProduct = () => {
           titleheading="Our Featured Products"
           // Pass dark mode prop if your SectionTitle supports it, otherwise styling is handled here
         />
-        <Products
-          data={{ data: data?.data ?? [] }}
-          loading={isLoading}
-          limit={6}
-          // You can also add darkMode here if Products supports it
-        />
+         {/* Products List */}
+  <Products
+  data={{
+    data: (data?.data ?? []).map((item) => ({
+      ...item,
+      image: Array.isArray(item.image) ? item.image : [item.image],
+      inStock: item.inStock, // ✅ Ensure `inStock` is included
+    })),
+  }}
+  loading={isLoading}
+  limit={6} // Limit to 6 featured products
+/>
 
         <div className="flex justify-center mt-6">
           <Link to={`allProducts`}>

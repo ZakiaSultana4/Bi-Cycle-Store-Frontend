@@ -20,6 +20,9 @@ import PrivetUserRoute from "./Private/PrivetUserRoute";
 import OrderPage from "@/Pages/Order/OrderPage";
 import OrderResponse from "@/Pages/Order/OrderResponse";
 import UserOrders from "@/Pages/Dashboard/user/UserOrders";
+import About from "@/Pages/About";
+import Contact from "@/Pages/Contact";
+
 
 
 
@@ -33,6 +36,14 @@ const router = createBrowserRouter([
             {
                 path: "/",
                 element: <Home />,
+            },
+            {
+                path: "/about",
+                element: <About />,
+            },
+            {
+                path: "/contact",
+                element: <Contact/>,
             },
             {
                 path: "details/:id",

@@ -1,12 +1,10 @@
-import  { useState } from "react";
+import { useState } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-import {
-  Form,
-} from "@/components/ui/form";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -35,12 +33,23 @@ const formSchema = z.object({
 });
 
 export default function LoginPreview() {
-  const [darkMode, setDarkMode] = useState(false); // simple dark mode toggle state
+  const [darkMode, setDarkMode] = useState(false);
   const [login] = useLoginMutation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const token = useAppSelector(selectCurrentUser);
+
+  // Default credentials
+  const defaultAdmin = {
+    email: "admin@example.com", // Replace with real admin email
+    password: "admin123",       // Replace with real admin password
+  };
+
+ const defaultUser = {
+    email: "user@example.com",  // Replace with real user email
+    password: "user123",        // Replace with real user password
+  }
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -58,15 +67,26 @@ export default function LoginPreview() {
         password: values.password,
       };
       const res = await login(userInfo).unwrap();
-
       const user = verifyToken(res.data.token);
       dispatch(setUser({ user: user, token: res?.data.token }));
-      toast.success("Logged in successful", { id: toastId, duration: 2000 });
+      toast.success("Logged in successfully", { id: toastId, duration: 2000 });
       navigate(location?.state || "/", { replace: true });
     } catch {
       toast.error("Email or password incorrect!", { id: toastId, duration: 2000 });
     }
   }
+
+  const loginAsAdmin = () => {
+    form.setValue("email", defaultAdmin.email);
+    form.setValue("password", defaultAdmin.password);
+    form.handleSubmit(onSubmit)(); // Trigger login
+  };
+
+  const loginAsUser = () => {
+    form.setValue("email", defaultUser.email);
+    form.setValue("password", defaultUser.password);
+    form.handleSubmit(onSubmit)(); // Trigger login
+  };
 
   if (token) {
     return <BackHome message="You Are Already Logged In!" />;
@@ -80,7 +100,7 @@ export default function LoginPreview() {
           : "bg-[var(--primary-foreground)] text-[var(--primary-darkbackground)]"
       }`}
     >
-      {/* Toggle dark mode button for demo */}
+      {/* Toggle dark mode */}
       <button
         onClick={() => setDarkMode((prev) => !prev)}
         className="absolute top-5 right-5 px-4 py-2 rounded border"
@@ -101,14 +121,18 @@ export default function LoginPreview() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              <div className="grid gap-4 ">
+              <div className="grid gap-4">
                 <CustomInputField
                   name="email"
                   label="Email"
                   placeholder="Enter your email"
                   type="email"
                   control={form.control}
-                  className={`${darkMode ? "bg-[var(--primary-darkbackground)] text-[var(--primary-foreground)] border border-gray-600" : ""}`}
+                  className={`${
+                    darkMode
+                      ? "bg-[var(--primary-darkbackground)] text-[var(--primary-foreground)] border border-gray-600"
+                      : ""
+                  }`}
                 />
                 <CustomInputField
                   name="password"
@@ -116,19 +140,49 @@ export default function LoginPreview() {
                   placeholder="*****"
                   type="password"
                   control={form.control}
-                  className={`${darkMode ? "bg-[var(--primary-darkbackground)] text-[var(--primary-foreground)] border border-gray-600" : ""}`}
+                  className={`${
+                    darkMode
+                      ? "bg-[var(--primary-darkbackground)] text-[var(--primary-foreground)] border border-gray-600"
+                      : ""
+                  }`}
                 />
 
                 <Link to="#" className="ml-auto inline-block text-sm underline">
                   Forgot your password?
                 </Link>
+
                 <Button type="submit" className="w-full bg-teal-500 text-white">
                   Login
+                </Button>
+
+                {/* OR Divider */}
+                <div className="relative text-center my-4">
+                  <span className="bg-inherit px-2 z-10 relative">OR</span>
+                  <div className="absolute top-1/2 left-0 w-full h-px bg-gray-300 -z-10" />
+                </div>
+
+                {/* Admin Login */}
+                <Button
+                  type="button"
+                  onClick={loginAsAdmin}
+                  className="w-full bg-indigo-600 text-white"
+                >
+                  Login as Admin
+                </Button>
+
+                {/* User Login */}
+                <Button
+                  type="button"
+                  onClick={loginAsUser}
+                  className="w-full bg-sky-600 text-white"
+                >
+                  Login as User
                 </Button>
               </div>
             </form>
           </Form>
-          <div className="mt-4 text-center text-sm ">
+
+          <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{" "}
             <Link to="/signup" className="underline">
               Sign up

@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-
 import {
   Dialog,
   DialogContent,
@@ -23,26 +22,27 @@ import {
 } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
-
+import { SubmitHandler, useForm } from "react-hook-form";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-
 import { useCreateProductMutation } from "@/redux/features/products/productApi";
 import CustomInputField from "@/components/CustomInputField";
 
 const formSchema = z.object({
   name: z.string().min(1, "Name is required."),
-  image: z.string().optional(),
+  image: z.array(z.any()).nonempty("At least one image is required."),
   description: z.string().min(1, "Description is required."),
   brand: z.string().min(1, "Brand is required."),
-  price: z.number().min(1, "Price cannot be  0."),
+  price: z.number().min(1, "Price cannot be 0."),
   quantity: z.number().min(1, "Quantity cannot be 0."),
   category: z.enum(["Mountain", "Road", "Hybrid", "Electric"], {
     errorMap: () => ({ message: "Invalid category" }),
+  }),
+  riderType: z.enum(["Men", "Women", "Kids"], {
+    errorMap: () => ({ message: "Rider type is required" }),
   }),
   model: z.string().min(1, "Model is required."),
 });
@@ -54,53 +54,79 @@ interface AddProductProps {
 const AddProduct = ({ darkMode }: AddProductProps) => {
   const [open, setOpen] = useState(false);
   const [addProduct] = useCreateProductMutation();
+  const [images, setImages] = useState<File[]>([]);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      image: "",
+      image: [],
       description: "",
       brand: "",
       price: 0,
       quantity: 0,
       category: undefined,
+      riderType: undefined,
       model: "",
     },
   });
 
   const { reset } = form;
-  const [image, setImage] = useState<File | null>(null);
 
-  const handleImageChange = (file: File) => {
-    setImage(file);
+  const removeImageAtIndex = (index: number) => {
+    setImages((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      if (updated.length > 0) {
+        form.setValue("image", updated as [File, ...File[]], {
+          shouldValidate: true,
+        });
+      } else {
+        form.resetField("image");
+      }
+      return updated;
+    });
   };
 
-  const onSubmit: SubmitHandler<FieldValues> = async (data) => {
-    const toastId = toast.loading("Adding Product...");
+  const onSubmit: SubmitHandler<z.infer<typeof formSchema>> = async (data) => {
+    const toastId = toast.loading("Uploading images...");
+
+    if (!images.length) {
+      toast.error("Please upload at least one image.", { id: toastId });
+      return;
+    }
 
     try {
-      if (!image)
-        return toast.error("Please select an image first!", { id: toastId });
+      const imageUrls: string[] = [];
 
-      const formData = new FormData();
-      formData.append("file", image);
-      formData.append("upload_preset", "bikeStore"); // Replace with your Cloudinary preset
+      for (const image of images) {
+        const formData = new FormData();
+        formData.append("file", image);
+        formData.append("upload_preset", "bikeStore");
 
-      const response = await fetch(
-        "https://api.cloudinary.com/v1_1/dmvw2gidg/image/upload",
-        {
-          method: "POST",
-          body: formData,
+        const res = await fetch(
+          "https://api.cloudinary.com/v1_1/dmvw2gidg/image/upload",
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        const result = await res.json();
+        if (result?.secure_url) {
+          imageUrls.push(result.secure_url);
         }
-      );
+      }
 
-      const result = await response.json();
-      const imageUrl = result.secure_url;
+      if (!imageUrls.length) {
+        toast.error("No images uploaded successfully.", { id: toastId });
+        return;
+      }
 
       const productData = {
         ...data,
-        image: imageUrl,
+        image: imageUrls,
+        inStock: data.quantity > 0,
       };
 
       const res = await addProduct(productData);
@@ -108,14 +134,13 @@ const AddProduct = ({ darkMode }: AddProductProps) => {
       if (res?.data) {
         toast.success("Product added successfully!", { id: toastId });
         reset();
+        setImages([]);
         setOpen(false);
-      } else if (res?.error) {
-        toast.error("Failed to add product. Please try again.", {
-          id: toastId,
-        });
+      } else {
+        toast.error("Failed to add product.", { id: toastId });
       }
-    } catch (error) {
-      toast.error("Failed to add product. Please try again.", { id: toastId });
+    } catch (err) {
+      toast.error("Upload failed.", { id: toastId });
     }
   };
 
@@ -124,10 +149,10 @@ const AddProduct = ({ darkMode }: AddProductProps) => {
       <DialogTrigger asChild>
         <button
           onClick={() => setOpen(true)}
-          className={`py-2 px-3 rounded hover:shadow-md  cursor-pointer${
+          className={`py-2 px-3 rounded hover:shadow-md cursor-pointer ${
             darkMode
-              ? " bg-gray-700 text-[var(--primary-foreground)]"
-              : "bg-gray-800 text-white"
+              ? "bg-teal-700 text-[var(--primary-foreground)] hover:bg-gray-600"
+              : "bg-teal-700 text-white hover:bg-teal-600"
           }`}
         >
           Add Product
@@ -154,11 +179,7 @@ const AddProduct = ({ darkMode }: AddProductProps) => {
         </div>
 
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4 max-w-md mx-auto w-full"
-          >
-            {/* Bike Name */}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <CustomInputField
               name="name"
               label="Bike Name"
@@ -167,38 +188,92 @@ const AddProduct = ({ darkMode }: AddProductProps) => {
               control={form.control}
             />
 
-            {/* Image Upload */}
+            {/* Image Upload + Preview */}
             <FormField
               control={form.control}
               name="image"
               render={({ fieldState: { error } }) => (
                 <FormItem>
-                  <FormLabel>Product Image</FormLabel>
+                  <FormLabel>Product Images</FormLabel>
                   <FormControl>
-                    <Input
+                    <input
                       type="file"
+                      multiple
                       accept="image/*"
                       onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          handleImageChange(file);
+                        const files = e.target.files;
+                        if (files && files.length > 0) {
+                          const filesArray = Array.from(files);
+                          setImages((prev) => {
+                            const updated = [
+                              ...prev,
+                              ...filesArray.filter(
+                                (file) =>
+                                  !prev.some(
+                                    (img) =>
+                                      img.name === file.name &&
+                                      img.size === file.size
+                                  )
+                              ),
+                            ];
+                            if (updated.length > 0) {
+                              form.setValue("image", updated as [File, ...File[]], {
+                                shouldValidate: true,
+                              });
+                            } else {
+                              form.resetField("image");
+                            }
+                            return updated;
+                          });
+                        } else {
+                          setImages([]);
+                          form.resetField("image");
                         }
                       }}
-                      className={`${
-                        darkMode
-                          ? "bg-[var(--primary-darkbackground)] text-[var(--primary-foreground)]"
-                          : ""
-                      }`}
+                      className="block w-full file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100"
                     />
                   </FormControl>
                   {error && (
-                    <p className="text-red-500 dark:text-red-400">{error.message}</p>
+                    <p className="text-red-500 text-sm mt-1">{error.message}</p>
+                  )}
+
+                  {/* Preview Thumbnails with Remove and Click to Preview */}
+                  {images.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {images.map((file, idx) => {
+                        const objectUrl = URL.createObjectURL(file);
+                        return (
+                          <div
+                            key={idx}
+                            className="relative w-16 h-16 rounded border overflow-hidden cursor-pointer"
+                          >
+                            <img
+                              src={objectUrl}
+                              alt={`preview-${idx}`}
+                              className="w-full h-full object-cover"
+                              onClick={() => setPreviewImage(objectUrl)}
+                            />
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeImageAtIndex(idx);
+                                URL.revokeObjectURL(objectUrl);
+                              }}
+                              className="absolute top-0 right-0 bg-red-600 text-white rounded-bl px-1.5 text-xs font-bold hover:bg-red-700"
+                              aria-label={`Remove image ${idx + 1}`}
+                            >
+                              &times;
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
                 </FormItem>
               )}
             />
 
-            {/* Description */}
             <FormField
               control={form.control}
               name="description"
@@ -209,72 +284,143 @@ const AddProduct = ({ darkMode }: AddProductProps) => {
                     <Textarea
                       placeholder="Enter description"
                       {...field}
-                      className={`${
-                        darkMode
-                          ? "bg-[var(--primary-darkbackground)] text-[var(--primary-foreground)]"
-                          : ""
-                      }`}
+                      className={darkMode ? "bg-gray-800 text-white" : ""}
                     />
                   </FormControl>
                 </FormItem>
               )}
             />
 
-            {/* Category Select */}
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <FormControl>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    >
-                      <SelectTrigger
-                        className={`${
-                          darkMode
-                            ? "bg-[var(--primary-darkbackground)] text-[var(--primary-foreground)]"
-                            : ""
-                        }`}
-                      >
-                        <SelectValue placeholder="Select a Category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectItem value="Mountain">Mountain</SelectItem>
-                          <SelectItem value="Road">Road</SelectItem>
-                          <SelectItem value="Hybrid">Hybrid</SelectItem>
-                          <SelectItem value="Electric">Electric</SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+            {/* Category & Rider */}
+            <div className="flex gap-4">
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <FormControl>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Category" />
+                        </SelectTrigger>
+                     <SelectContent
+  className={`${darkMode
+    ? "bg-[var(--primary-darkbackground)] text-[var(--primary-foreground)]"
+    : "bg-white text-black"
+  }`}
+>
+  <SelectGroup>
+    <SelectItem
+      value="Mountain"
+      className={`${darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+    >
+      Mountain
+    </SelectItem>
+    <SelectItem
+      value="Road"
+      className={`${darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+    >
+      Road
+    </SelectItem>
+    <SelectItem
+      value="Hybrid"
+      className={`${darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+    >
+      Hybrid
+    </SelectItem>
+    <SelectItem
+      value="Electric"
+      className={`${darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"}`}
+    >
+      Electric
+    </SelectItem>
+  </SelectGroup>
+</SelectContent>
 
-            {/* Model */}
+                      </Select>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="riderType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Rider Type</FormLabel>
+                    <FormControl>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Rider Type" />
+                        </SelectTrigger>
+                  <SelectContent
+  className={`${
+    darkMode
+      ? "bg-[var(--primary-darkbackground)] text-[var(--primary-foreground)]"
+      : "bg-white text-black"
+  }`}
+>
+  <SelectGroup>
+    <SelectItem
+      value="Men"
+      className={`${
+        darkMode
+          ? "hover:bg-gray-700 text-[var(--primary-foreground)]"
+          : "hover:bg-gray-100 text-black"
+      }`}
+    >
+      Men's Bikes
+    </SelectItem>
+    <SelectItem
+      value="Women"
+      className={`${
+        darkMode
+          ? "hover:bg-gray-700 text-[var(--primary-foreground)]"
+          : "hover:bg-gray-100 text-black"
+      }`}
+    >
+      Women's Bikes
+    </SelectItem>
+    <SelectItem
+      value="Kids"
+      className={`${
+        darkMode
+          ? "hover:bg-gray-700 text-[var(--primary-foreground)]"
+          : "hover:bg-gray-100 text-black"
+      }`}
+    >
+      Kids' Bikes
+    </SelectItem>
+  </SelectGroup>
+</SelectContent>
+
+                      </Select>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Model & Brand */}
             <CustomInputField
               name="model"
               label="Bike Model"
-              placeholder="Bike Model.."
+              placeholder="Model"
               type="text"
               control={form.control}
             />
-
-            {/* Brand */}
             <CustomInputField
               name="brand"
               label="Brand Name"
-              placeholder="Enter Brand name"
+              placeholder="Brand"
               type="text"
               control={form.control}
             />
 
-            <div className="flex gap-4 justify-between items-center ">
-              {/* Price */}
+            {/* Price & Quantity */}
+            <div className="flex gap-4">
               <FormField
                 control={form.control}
                 name="price"
@@ -287,18 +433,12 @@ const AddProduct = ({ darkMode }: AddProductProps) => {
                         placeholder="Price"
                         {...field}
                         onChange={(e) => field.onChange(Number(e.target.value))}
-                        className={`${
-                          darkMode
-                            ? "bg-[var(--primary-darkbackground)] text-[var(--primary-foreground)]"
-                            : ""
-                        }`}
                       />
                     </FormControl>
                   </FormItem>
                 )}
               />
 
-              {/* Quantity */}
               <FormField
                 control={form.control}
                 name="quantity"
@@ -310,16 +450,7 @@ const AddProduct = ({ darkMode }: AddProductProps) => {
                         type="number"
                         placeholder="Quantity"
                         {...field}
-                        value={field.value ?? ""}
-                        onChange={(e) => {
-                          const value = parseFloat(e.target.value);
-                          field.onChange(isNaN(value) ? "" : value);
-                        }}
-                        className={`${
-                          darkMode
-                            ? "bg-[var(--primary-darkbackground)] text-[var(--primary-foreground)]"
-                            : ""
-                        }`}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
                       />
                     </FormControl>
                   </FormItem>
@@ -327,25 +458,38 @@ const AddProduct = ({ darkMode }: AddProductProps) => {
               />
             </div>
 
-            <div className="flex justify-center space-x-4">
-              <Button
-                type="submit"
-                variant="default"
-                className="mt-2 bg-amber-400 hover:bg-amber-500"
-              >
+            <div className="flex justify-between mt-4">
+              <Button type="submit" className="bg-amber-500 hover:bg-amber-600">
                 Add Product
               </Button>
-              <Button
-                variant="outline"
-                className="mt-2"
-                onClick={() => setOpen(false)}
-              >
+              <Button variant="outline" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
             </div>
           </form>
         </Form>
       </DialogContent>
+
+      {/* Preview Modal using shadcn Dialog */}
+      <Dialog open={Boolean(previewImage)} onOpenChange={() => setPreviewImage(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh] p-0 overflow-hidden bg-transparent shadow-none">
+          <DialogTitle className="sr-only">Image Preview</DialogTitle>
+          <div className="relative">
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute top-2 right-2 z-10 rounded-full bg-black bg-opacity-50 text-white p-1 hover:bg-opacity-75"
+              aria-label="Close preview"
+            >
+              &times;
+            </button>
+            <img
+              src={previewImage ?? ""}
+              alt="Image preview"
+              className="w-full max-h-[80vh] object-contain rounded"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 };

@@ -31,7 +31,18 @@ export type TResponse<T> = {
   success: boolean;
   message: string;
 };
-
+export interface Product{
+  _id: string;
+  image: string[];
+  name: string;
+  brand: string;
+  price: number;
+  category: "Mountain" | "Road" | "Hybrid" | "Electric";
+  model: string;
+  description: string;
+  quantity: number;
+  riderType: "Men" | "Women" | "Kids";
+}
 export interface IBikeResponse {
   _id: string;
   image: string;
@@ -42,6 +53,7 @@ export interface IBikeResponse {
   model: string;
   description: string;
   quantity: number;
+  riderType: "Men" | "Women" | "Kids";
   inStock: boolean;
   createdAt?: Date;
   updatedAt?: Date;

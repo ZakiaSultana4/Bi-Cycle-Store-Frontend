@@ -5,13 +5,14 @@ import { useDarkMode } from '@/hooks/useDarkMode';
 interface Product {
   _id: string;
   name: string;
-  image: string;
+  image: string[];
   model: string;
   price: number;
   inStock: boolean;
   description: string;
   category: string;
   brand: string;
+  riderType: string;
   quantity: number;
 }
 

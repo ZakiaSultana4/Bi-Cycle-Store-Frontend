@@ -72,6 +72,7 @@ export function ProductTable() {
             <th scope="col" className="px-6 py-3">Category</th>
             <th scope="col" className="px-6 py-3">Price</th>
             <th scope="col" className="px-6 py-3">Quantity</th>
+            <th scope="col" className="px-6 py-3">Rider Type</th>
             <th scope="col" className="px-6 py-3">In Stock</th>
             <th scope="col" className="px-6 py-3">Action</th>
           </tr>
@@ -109,6 +110,7 @@ export function ProductTable() {
                 <td className="px-6 py-4">{item?.category}</td>
                 <td className="px-6 py-4">{item?.price}</td>
                 <td className="px-6 py-4">{item?.quantity}</td>
+                <td className="px-6 py-4">{item?.riderType}</td>
                 <td className="px-6 py-4">
                   {item?.quantity === 0 ? (
                     <FaTimes className="w-4 text-red-500" />
